@@ -12,6 +12,11 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.4",
+    "admin-lte": "^3.2.0",
+    "bootstrap": "^4.6.2",
+    "icheck-bootstrap": "^3.0.1",
+    "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
   },
@@ -20,6 +25,7 @@
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/tsconfig": "^0.9.1",
+    "husky": "^9.1.7",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.8.3",
     "typescript": "~6.0.0",
