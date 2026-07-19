@@ -71,8 +71,8 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const user = reactive({
-  email: 'hellooolodd',
-  password: 'hello123',
+  email: '',
+  password: '',
 })
 
 const userError = reactive({
