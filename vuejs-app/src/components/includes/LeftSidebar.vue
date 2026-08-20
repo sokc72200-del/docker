@@ -85,14 +85,23 @@
 import emptyImage from '@/assets/images/emptyImage.png'
 import logoImage from '@/assets/images/logoImage.jpg'
 import { useUserStore } from '@/stores/user'
+import { useRecentChatsStore } from '@/stores/recentChats'
 import { ref, onMounted, watch, computed } from 'vue'
 import { apiGetChats, apiGetChatUsers } from '@/functions/api/chat'
 import ChatList from '@/components/includes/controls/ChatList.vue'
 import UserList from '@/components/includes/controls/UserList.vue'
 import $ from 'jquery'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+watch(route, (newRoute) => {
+  keyword.value = ''
+})
 
 const userStore = useUserStore()
-const chats = ref([])
+const recentChatsStore = useRecentChatsStore()
+
+const chats = computed(() => recentChatsStore.chats)
 const users = ref([])
 
 // Pagination state chat
@@ -163,7 +172,7 @@ async function generateChats(searchKeyword = '', page = 1, per_page = pageSize.v
     per_page: per_page,
   })
 
-  chats.value = [...chats.value, ...response.data.chats]
+  recentChatsStore.syncMultiChats([...chats.value, ...response.data.chats])
 
   chatCurrentPage.value = response.data.meta.current_page
   chatLastPage.value = response.data.meta.last_page

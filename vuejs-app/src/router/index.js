@@ -15,6 +15,9 @@ import Navbar from '@/components/includes/Navbar.vue'
 import LeftSidebar from '@/components/includes/LeftSidebar.vue'
 import RightSidebar from '@/components/includes/RightSidebar.vue'
 import Footer from '@/components/includes/Footer.vue'
+import ChatCreate from '@/components/pages/ChatCreate.vue'
+import ChatDetail from '@/components/pages/ChatDetail.vue'
+import ChatBox from '@/components/pages/ChatBox.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -108,6 +111,44 @@ const router = createRouter({
         right_sidebar: RightSidebar,
         footer: Footer,
       },
+      meta: { guarded: true },
+    },
+    {
+      path: '/chat/create',
+      name: 'chat.create',
+      components: {
+        default: ChatCreate,
+        navbar: Navbar,
+        left_sidebar: LeftSidebar,
+        right_sidebar: RightSidebar,
+        footer: Footer,
+      },
+      meta: { guarded: true },
+    },
+    {
+      path: '/chat/:chatId/details',
+      name: 'chat.details',
+      components: {
+        default: ChatDetail,
+        navbar: Navbar,
+        left_sidebar: LeftSidebar,
+        right_sidebar: RightSidebar,
+        footer: Footer,
+      },
+      props: { default: true },
+      meta: { guarded: true },
+    },
+    {
+      path: '/chat/:chatId',
+      name: 'chat.box',
+      components: {
+        default: ChatBox,
+        navbar: Navbar,
+        left_sidebar: LeftSidebar,
+        right_sidebar: RightSidebar,
+        footer: Footer,
+      },
+      props: { default: true },
       meta: { guarded: true },
     },
     {
