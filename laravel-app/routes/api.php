@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BackupController;
+use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\OAuthController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/create', [BackupController::class, 'createBackup']);
             Route::get('/download/{filename}', [BackupController::class, 'downloadBackup']);
             Route::delete('/delete/{filename}', [BackupController::class, 'deleteBackup']);
+        });
+        Route::prefix('chats')->group(function () {
+            Route::get('/', [ChatController::class, 'getChats']);
+            Route::get('/users', [ChatController::class, 'getChatUsers']);
         });
     });
 });
