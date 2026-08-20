@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/read/{id}', [UserController::class, 'readUser']);
             Route::post('/create', [UserController::class, 'createUser']);
             Route::put('/update/{id}', [UserController::class, 'updateUser']);
+            Route::patch('/toggle-status/{id}', [UserController::class, 'toggleUserStatus']);
             Route::delete('/delete/{id}', [UserController::class, 'deleteUser']);
         });
     });

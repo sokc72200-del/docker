@@ -20,6 +20,11 @@ onMounted(async () => {
         return router.replace({ name: 'auth.signin' });
       });
     }
+    if (error === 'account_disabled') {
+      return MessageModal({ icon: "error", title: "Error", text: "Your account has been disabled. Please contact support." }, () => {
+        return router.replace({ name: 'auth.signin' });
+      });
+    }
 
     const token = route.query.token;
     const response = await apiOAuthExchangeToken(token);
