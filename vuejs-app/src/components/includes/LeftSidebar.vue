@@ -117,6 +117,7 @@ const keyword = ref('')
 const isLoadingMore = ref(false)
 
 onMounted(() => {
+  recentChatsStore.subscribeToChatEvents()
   generateChats()
 
   // jQuery infinite scroll on sidebar

@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Events\ChatCreated;
+use App\Events\ChatDeleted;
+use App\Events\ChatUpdated;
+use App\Events\MessageCreated;
+use App\Events\MessageDeleted;
+use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\AddGroupChatMemberRequest;
 use App\Http\Requests\Chat\CreateGroupChatRequest;
@@ -24,12 +30,16 @@ use App\Services\ImageClassService;
 use DB;
 use Exception;
 use App\Http\Requests\Chat\CreateChatMessageRequest;
+use App\Http\Requests\Chat\CreateVoiceChatMessageRequest;
 use App\Http\Requests\Chat\DeleteChatMessageRequest;
 use App\Http\Requests\Chat\GetChatMessagesRequest;
 use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\ChatMessage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
@@ -164,6 +174,11 @@ class ChatController extends Controller
                 'role' => 'member',
             ]);
 
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatCreated($chat, $member->user_id))->toOthers();
+            }
+
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
@@ -212,6 +227,10 @@ class ChatController extends Controller
                 'user_id' => $user->id,
                 'role' => 'admin',
             ]);
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatCreated($chat, $member->user_id))->toOthers();
+            }
 
             DB::commit();
         } catch (Exception $e) {
@@ -281,6 +300,11 @@ class ChatController extends Controller
         try {
             DB::beginTransaction();
             $chat->delete();
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatDeleted($chat->id, $member->user_id))->toOthers();
+            }
+
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
@@ -344,6 +368,10 @@ class ChatController extends Controller
 
             if ($shouldDeleteOldAvatar && $oldAvatarPath) {
                 $imageClass->delete($oldAvatarPath);
+            }
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatUpdated($chat, $member->user_id))->toOthers();
             }
 
             DB::commit();
@@ -600,6 +628,8 @@ class ChatController extends Controller
             'content' => $request->input('content'),
         ]);
 
+        broadcast(new MessageCreated($message, $chatId))->toOthers();
+
         return response([
             'message' => 'Message created.',
             'chat_message' => new ChatMessageResource($message->load('creator'))
@@ -628,6 +658,8 @@ class ChatController extends Controller
             'content' => $request->input('content'),
         ]);
 
+        broadcast(new MessageUpdated($message, $chatId))->toOthers();
+
         return response([
             'message' => 'Message updated.',
             'chat_message' => new ChatMessageResource($message->load('creator'))
@@ -652,6 +684,8 @@ class ChatController extends Controller
             ->firstOrFail();
 
         $message->delete();
+
+        broadcast(new MessageDeleted($message->id, $chatId))->toOthers();
 
         return response([
             'message' => 'Message deleted.'
@@ -678,5 +712,57 @@ class ChatController extends Controller
         return response([
             'message' => 'All messages marked as seen.'
         ], 200);
+    }
+
+    public function createVoiceChatMessage(CreateVoiceChatMessageRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $file = $request->file('voice');
+        $extension = $file->guessExtension() ?? 'webm';
+        $filename = Str::uuid() . '.' . $extension;
+        $path = $file->storeAs("chat-files/{$chatId}", $filename, 'local');
+
+        $message = ChatMessage::create([
+            'chat_id' => $chatId,
+            'creator_id' => $user->id,
+            'type' => 'voice',
+            'content' => 'Sent a voice message.',
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
+        ]);
+
+        broadcast(new MessageCreated($message, $chatId))->toOthers();
+
+        return response([
+            'message' => 'Voice message created.',
+            'chat_message' => new ChatMessageResource($message->load('creator'))
+        ], 201);
+    }
+
+    public function getChatFile(Request $request, $chatId, $filename)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $path = "chat-files/{$chatId}/{$filename}";
+
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
     }
 }
