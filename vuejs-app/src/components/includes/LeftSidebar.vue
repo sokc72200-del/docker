@@ -86,6 +86,7 @@ import emptyImage from '@/assets/images/emptyImage.png'
 import logoImage from '@/assets/images/logoImage.jpg'
 import { useUserStore } from '@/stores/user'
 import { useRecentChatsStore } from '@/stores/recentChats'
+import { usePresenceStore } from '@/stores/presence'
 import { ref, onMounted, watch, computed } from 'vue'
 import { apiGetChats, apiGetChatUsers } from '@/functions/api/chat'
 import ChatList from '@/components/includes/controls/ChatList.vue'
@@ -100,6 +101,7 @@ watch(route, (newRoute) => {
 
 const userStore = useUserStore()
 const recentChatsStore = useRecentChatsStore()
+const presenceStore = usePresenceStore()
 
 const chats = computed(() => recentChatsStore.chats)
 const users = ref([])
@@ -117,8 +119,9 @@ const keyword = ref('')
 const isLoadingMore = ref(false)
 
 onMounted(() => {
-  recentChatsStore.subscribeToChatEvents()
-  generateChats()
+  recentChatsStore.subscribeToChatEvents();
+  presenceStore.subscribe();
+  generateChats();
 
   // jQuery infinite scroll on sidebar
   $('.sidebar').on('scroll', async function () {
