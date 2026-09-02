@@ -38,6 +38,8 @@ use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\ChatMessage;
+use App\Events\UserTyping;
+use App\Http\Requests\Chat\UserTypingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -712,6 +714,23 @@ class ChatController extends Controller
 
         return response([
             'message' => 'All messages marked as seen.'
+        ], 200);
+    }
+    public function typing(UserTypingRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        broadcast(new UserTyping($user, (int) $chatId))->toOthers();
+
+        return response([
+            'message' => 'Typing event broadcasted.'
         ], 200);
     }
 

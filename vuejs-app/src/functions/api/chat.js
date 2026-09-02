@@ -98,6 +98,9 @@ export async function apiDeleteChatMessage(chatId, messageId) {
 export async function apiMarkAllChatMessagesAsSeen(chatId) {
   return await axios.post(APP_API_URL + `/chats/${chatId}/messages/seen-all`);
 }
+export async function apiSendTyping(chatId) {
+  return await axios.post(APP_API_URL + `/chats/${chatId}/typing`);
+}
 
 export async function apiCreateVoiceChatMessage(chatId, voiceBlob) {
   const formData = new FormData();

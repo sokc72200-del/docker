@@ -110,6 +110,10 @@
               </template>
             </div>
             <!--/.direct-chat-messages-->
+            <div v-if="typingUsers.length" class="text-muted px-2 pb-1" style="font-size: 0.85rem">
+              <i class="fas fa-ellipsis-h mr-1"></i>
+              {{ typingUsers.join(', ') }} {{ typingUsers.length > 1 ? 'are' : 'is' }} typing...
+            </div>
           </div>
           <div class="card-footer">
             <form @submit.prevent="sendMessage">
@@ -138,6 +142,7 @@
                     placeholder="Type Message ..."
                     class="form-control"
                     maxlength="5000"
+                    @keyup="handleTyping"
                   />
                 </template>
                 <span class="input-group-append">
@@ -212,6 +217,7 @@ import {
   apiUpdateChatMessage,
   apiDeleteChatMessage,
   apiMarkAllChatMessagesAsSeen,
+  apiSendTyping,
 } from '@/functions/api/chat'
 import $ from 'jquery'
 import { apiReadChat } from '@/functions/api/chat'
@@ -232,6 +238,25 @@ const props = defineProps({
 // Message input
 const messageContent = ref('')
 const chat = computed(() => recentChatsStore.getChatById(props.chatId))
+
+// Typing indicator
+const typingUsers = computed(() => recentChatsStore.getTypingUsers(props.chatId))
+let typingThrottleTimer = null
+
+function handleTyping() {
+  if (typingThrottleTimer) {
+    return // Already sent a typing event recently, wait for throttle to clear
+  }
+  apiSendTyping(props.chatId).catch(() => {})
+  typingThrottleTimer = setTimeout(() => {
+    typingThrottleTimer = null
+  }, 2000)
+}
+
+function resetTypingThrottle() {
+  clearTimeout(typingThrottleTimer)
+  typingThrottleTimer = null
+}
 
 // Edit state
 const editingMessageId = ref(null)
@@ -558,6 +583,7 @@ watch(
     editContent.value = ''
     resetRecordingState() // Reset recording state when switching chats
     selectedImageFile.value = null // Reset selected image when switching chats
+    resetTypingThrottle() // Reset typing throttle when switching chats
 
     await loadChat()
     // await loadMessages(1);
