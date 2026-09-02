@@ -69,6 +69,17 @@
                         </span>
                       </div>
                     </template>
+                    <template v-else-if="message.type === 'voice'">
+                      <audio controls :src="message.fileBlob" style="max-width: 250px"></audio>
+                    </template>
+                    <template v-else-if="message.type === 'image'">
+                      <img
+                        :src="message.fileBlob"
+                        style="max-width: 250px; border-radius: 4px; cursor: pointer"
+                        @click="openImagePreview(message.fileBlob)"
+                        alt="image message"
+                      />
+                    </template>
                     <template v-else>
                       {{ message.content }}
                     </template>
@@ -103,16 +114,78 @@
           <div class="card-footer">
             <form @submit.prevent="sendMessage">
               <div class="input-group">
-                <input
-                  v-model="messageContent"
-                  type="text"
-                  name="message"
-                  placeholder="Type Message ..."
-                  class="form-control"
-                  maxlength="5000"
-                />
+                <template v-if="isRecording">
+                  <span class="form-control d-flex align-items-center text-danger">
+                    <i class="fas fa-circle mr-2"></i> {{ formatRecordingTime(recordingSeconds) }}
+                  </span>
+                </template>
+                <template v-else-if="recordedBlob">
+                  <span class="form-control d-flex align-items-center">
+                    <i class="fas fa-microphone mr-2 text-secondary"></i>
+                    {{ formatRecordingTime(recordingSeconds) }}
+                  </span>
+                </template>
+                <template v-else-if="selectedImageFile">
+                  <span class="form-control d-flex align-items-center">
+                    <i class="fas fa-image mr-2 text-secondary"></i> {{ selectedImageFile.name }}
+                  </span>
+                </template>
+                <template v-else>
+                  <input
+                    v-model="messageContent"
+                    type="text"
+                    name="message"
+                    placeholder="Type Message ..."
+                    class="form-control"
+                    maxlength="5000"
+                  />
+                </template>
                 <span class="input-group-append">
-                  <button type="submit" class="btn btn-primary" :disabled="!messageContent.trim()">
+                  <button
+                    v-if="selectedImageFile"
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="selectedImageFile = null"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                  <button
+                    v-if="recordedBlob && !isRecording"
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="resetRecordingState"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                  <button
+                    v-if="!recordedBlob && !selectedImageFile"
+                    type="button"
+                    class="btn"
+                    :class="isRecording ? 'btn-danger' : 'btn-secondary'"
+                    @click="toggleRecording"
+                  >
+                    <i class="fas fa-microphone"></i>
+                  </button>
+                  <button
+                    v-if="!recordedBlob && !isRecording"
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="$refs.imageInput.click()"
+                  >
+                    <i class="fas fa-image"></i>
+                  </button>
+                  <input
+                    ref="imageInput"
+                    type="file"
+                    accept="image/jpg,image/jpeg,image/png,image/gif,image/webp"
+                    style="display: none"
+                    @change="onImageSelected"
+                  />
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    :disabled="!recordedBlob && !messageContent.trim() && !selectedImageFile"
+                  >
                     Send
                   </button>
                 </span>
@@ -134,6 +207,8 @@ import { formatChatTime } from '@/functions/datetime'
 import {
   apiGetChatMessages,
   apiCreateChatMessage,
+  apiCreateVoiceChatMessage,
+  apiCreateImageChatMessage,
   apiUpdateChatMessage,
   apiDeleteChatMessage,
   apiMarkAllChatMessagesAsSeen,
@@ -181,6 +256,113 @@ function cancelEdit() {
   editContent.value = ''
 }
 
+// Image upload state
+const selectedImageFile = ref(null)
+
+function onImageSelected(event) {
+  const file = event.target.files[0]
+  if (file) {
+    selectedImageFile.value = file
+  }
+  event.target.value = ''
+}
+
+async function sendImageMessage(file) {
+  try {
+    const response = await apiCreateImageChatMessage(props.chatId, file)
+    recentChatsStore.syncChatMessage(props.chatId, response.data.chat_message)
+    scrollToBottom()
+  } catch (error) {
+    return MessageModal({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message,
+    })
+  }
+}
+
+function openImagePreview(src) {
+  Swal.fire({
+    imageUrl: src,
+    imageAlt: 'Image message',
+    showConfirmButton: false,
+    showCloseButton: true,
+  })
+}
+
+// Voice recording state
+const isRecording = ref(false)
+const mediaRecorder = ref(null)
+const audioChunks = ref([])
+const recordedBlob = ref(null)
+const recordingSeconds = ref(0)
+let recordingTimer = null
+
+function resetRecordingState() {
+  recordedBlob.value = null
+  recordingSeconds.value = 0
+  clearInterval(recordingTimer)
+  mediaRecorder.value?.stop()
+  isRecording.value = false
+}
+function formatRecordingTime(seconds) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+async function toggleRecording() {
+  if (isRecording.value) {
+    clearInterval(recordingTimer)
+    mediaRecorder.value?.stop()
+    isRecording.value = false
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorder.value = new MediaRecorder(stream)
+      audioChunks.value = []
+      recordingSeconds.value = 0
+
+      mediaRecorder.value.ondataavailable = (e) => {
+        audioChunks.value.push(e.data)
+      }
+
+      mediaRecorder.value.onstop = () => {
+        recordedBlob.value = new Blob(audioChunks.value, { type: 'audio/webm' })
+        stream.getTracks().forEach((track) => track.stop())
+      }
+
+      mediaRecorder.value.start()
+      isRecording.value = true
+      recordingTimer = setInterval(() => {
+        recordingSeconds.value++
+        if (recordingSeconds.value >= 60) {
+          // Limit recording to 60 seconds
+          clearInterval(recordingTimer)
+          mediaRecorder.value?.stop()
+          isRecording.value = false
+        }
+      }, 1000)
+    } catch (error) {
+      return MessageModal({ icon: 'error', title: 'Error', text: 'Microphone access denied.' })
+    }
+  }
+}
+
+async function sendVoiceMessage(blob) {
+  try {
+    const response = await apiCreateVoiceChatMessage(props.chatId, blob)
+    recentChatsStore.syncChatMessage(props.chatId, response.data.chat_message)
+    scrollToBottom()
+  } catch (error) {
+    return MessageModal({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message,
+    })
+  }
+}
+
 async function saveEdit(messageId) {
   if (!editContent.value.trim()) {
     return
@@ -201,6 +383,18 @@ async function saveEdit(messageId) {
 }
 
 async function sendMessage() {
+  if (selectedImageFile.value) {
+    await sendImageMessage(selectedImageFile.value)
+    selectedImageFile.value = null
+    return
+  }
+
+  if (recordedBlob.value) {
+    await sendVoiceMessage(recordedBlob.value)
+    resetRecordingState()
+    return
+  }
+
   if (!messageContent.value.trim()) {
     return
   }
@@ -314,7 +508,6 @@ async function loadMoreMessages() {
 function scrollToBottom() {
   const chatContainer = $('.direct-chat-messages')
   if (chatContainer.length > 0) {
-    console.log('Scrolling to bottom')
     chatContainer.scrollTop(chatContainer[0].scrollHeight)
   }
 }
@@ -363,6 +556,8 @@ watch(
     messageContent.value = '' // Clear message input when switching chats
     editingMessageId.value = null // Cancel any ongoing edit
     editContent.value = ''
+    resetRecordingState() // Reset recording state when switching chats
+    selectedImageFile.value = null // Reset selected image when switching chats
 
     await loadChat()
     // await loadMessages(1);

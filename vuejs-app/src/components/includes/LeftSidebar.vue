@@ -83,7 +83,7 @@
 </template>
 <script setup>
 import emptyImage from '@/assets/images/emptyImage.png'
-import logoImage from '@/assets/images/logoImage.jpg'
+import logoImage from '@/assets/images/logoImage.webp'
 import { useUserStore } from '@/stores/user'
 import { useRecentChatsStore } from '@/stores/recentChats'
 import { ref, onMounted, watch, computed } from 'vue'

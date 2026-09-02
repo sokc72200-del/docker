@@ -1,5 +1,6 @@
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import 'admin-lte/dist/js/adminlte.min.js'
+import '@/functions/echo.js'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -41,7 +42,9 @@ router.beforeEach(async (to, from) => {
     const { data } = response
     userStore.setState(data.user)
   } catch (error) {
-    userStore.reset()
+    if (error.response && error.response.status === 401) {
+      userStore.reset()
+    }
   }
 
   if (guarded && !userStore.isAuthenticated) {
