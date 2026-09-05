@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['chat_id', 'user_id', 'role', 'joined_at'])]
+#[Fillable(['chat_id', 'user_id', 'role', 'joined_at', 'pinned_at', 'muted_at', 'archived_at'])]
 class ChatMember extends Model
 {
     protected $table = 'chat_members';
@@ -17,6 +17,9 @@ class ChatMember extends Model
         return [
             'role' => 'string',
             'joined_at' => 'datetime',
+            'pinned_at' => 'datetime',
+            'muted_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 

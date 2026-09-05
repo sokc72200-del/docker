@@ -8,6 +8,7 @@ use App\Events\ChatUpdated;
 use App\Events\MessageCreated;
 use App\Events\MessageDeleted;
 use App\Events\MessageUpdated;
+use App\Events\UserTyping;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\AddGroupChatMemberRequest;
 use App\Http\Requests\Chat\CreateGroupChatRequest;
@@ -20,6 +21,7 @@ use App\Http\Requests\Chat\LeaveGroupChatRequest;
 use App\Http\Requests\Chat\ReadChatRequest;
 use App\Http\Requests\Chat\RemoveGroupChatMemberRequest;
 use App\Http\Requests\Chat\UpdateGroupChatRequest;
+use App\Http\Requests\Chat\UserTypingRequest;
 use App\Http\Resources\Chat\ChatMemberResource;
 use App\Http\Resources\Chat\ChatResource;
 use App\Http\Resources\Chat\ChatUserResource;
@@ -38,8 +40,6 @@ use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\ChatMessage;
-use App\Events\UserTyping;
-use App\Http\Requests\Chat\UserTypingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -100,8 +100,33 @@ class ChatController extends Controller
             })
 
             // Use LEFT JOIN to get latest message without subquery
-            ->selectRaw('chats.*,
-                (SELECT MAX(created_at) FROM chat_messages WHERE chat_id = chats.id) as latest_message_at')
+            ->selectRaw(
+                'chats.*,
+                (SELECT MAX(created_at) FROM chat_messages WHERE chat_id = chats.id) as latest_message_at,
+                (SELECT COUNT(*) FROM chat_messages WHERE chat_id = chats.id AND creator_id <> ? AND seen_at IS NULL) as unread_count,
+                (SELECT pinned_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as pinned_at,
+                (SELECT muted_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as muted_at,
+                (SELECT archived_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as archived_at',
+                [$user->id, $user->id, $user->id, $user->id]
+            )
+            ->when(!$request->boolean('archived'), function ($query) use ($user) {
+                // By default, hide chats this user has archived
+                $query->whereRaw(
+                    '(SELECT archived_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) IS NULL',
+                    [$user->id]
+                );
+            }, function ($query) use ($user) {
+                // ?archived=1 shows only archived chats
+                $query->whereRaw(
+                    '(SELECT archived_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) IS NOT NULL',
+                    [$user->id]
+                );
+            })
+            // Pinned chats always float to the top
+            ->orderByRaw(
+                '(SELECT pinned_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) IS NULL',
+                [$user->id]
+            )
             ->orderByDesc('latest_message_at')
             ->orderBy('created_at', 'desc')
 
@@ -266,6 +291,14 @@ class ChatController extends Controller
             ->whereHas('members', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
+            ->selectRaw(
+                'chats.*,
+                (SELECT COUNT(*) FROM chat_messages WHERE chat_id = chats.id AND creator_id <> ? AND seen_at IS NULL) as unread_count,
+                (SELECT pinned_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as pinned_at,
+                (SELECT muted_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as muted_at,
+                (SELECT archived_at FROM chat_members WHERE chat_id = chats.id AND user_id = ?) as archived_at',
+                [$user->id, $user->id, $user->id, $user->id]
+            )
             ->with([
                 'messages' => function ($query) {
                     $query->limit(25)
@@ -716,6 +749,7 @@ class ChatController extends Controller
             'message' => 'All messages marked as seen.'
         ], 200);
     }
+
     public function typing(UserTypingRequest $request, $chatId)
     {
         $user = $request->user();
@@ -731,6 +765,57 @@ class ChatController extends Controller
 
         return response([
             'message' => 'Typing event broadcasted.'
+        ], 200);
+    }
+
+    public function togglePinChat(Request $request, $chatId)
+    {
+        $user = $request->user();
+
+        $member = ChatMember::where('chat_id', $chatId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $member->pinned_at = $member->pinned_at ? null : now();
+        $member->save();
+
+        return response([
+            'message' => $member->pinned_at ? 'Chat pinned.' : 'Chat unpinned.',
+            'is_pinned' => (bool) $member->pinned_at,
+        ], 200);
+    }
+
+    public function toggleMuteChat(Request $request, $chatId)
+    {
+        $user = $request->user();
+
+        $member = ChatMember::where('chat_id', $chatId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $member->muted_at = $member->muted_at ? null : now();
+        $member->save();
+
+        return response([
+            'message' => $member->muted_at ? 'Chat muted.' : 'Chat unmuted.',
+            'is_muted' => (bool) $member->muted_at,
+        ], 200);
+    }
+
+    public function toggleArchiveChat(Request $request, $chatId)
+    {
+        $user = $request->user();
+
+        $member = ChatMember::where('chat_id', $chatId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $member->archived_at = $member->archived_at ? null : now();
+        $member->save();
+
+        return response([
+            'message' => $member->archived_at ? 'Chat archived.' : 'Chat unarchived.',
+            'is_archived' => (bool) $member->archived_at,
         ], 200);
     }
 

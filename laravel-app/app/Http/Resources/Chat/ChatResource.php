@@ -33,6 +33,7 @@ class ChatResource extends JsonResource
             'avatar_thumbnail' => $this->avatar_thumbnail,
             'description' => $this->description,
             'other_user_id' => $otherUserId,
+            'unread_count' => (int) ($this->unread_count ?? 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'messages' => $this->whenLoaded('messages', fn() => ChatMessageResource::collection($this->messages)),

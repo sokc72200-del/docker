@@ -509,6 +509,7 @@ async function loadMessages(page = 1) {
 async function markMessagesAsSeen() {
   try {
     await apiMarkAllChatMessagesAsSeen(props.chatId)
+    recentChatsStore.resetUnreadCount(props.chatId) // Clear the badge once messages are marked seen
   } catch (error) {
     console.error('Error marking messages as seen:', error)
   }
@@ -574,6 +575,8 @@ function setupScrollListener() {
 watch(
   () => props.chatId,
   async () => {
+    recentChatsStore.setActiveChatId(props.chatId) // Mark this chat as currently open
+
     // Reset state
     isLoadingMore.value = false
     currentPage.value = 1
@@ -595,6 +598,7 @@ watch(
 
 // Initial load
 onMounted(async () => {
+  recentChatsStore.setActiveChatId(props.chatId) // Mark this chat as currently open
   await loadChat()
   await loadMessages(1)
   scrollToBottom()

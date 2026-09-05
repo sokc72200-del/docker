@@ -71,9 +71,7 @@
       </div>
       <nav class="mt-2">
         <ChatList :chats="chats"></ChatList>
-
         <UserList :users="users"></UserList>
-
         <li v-if="isLoadingMore" class="nav-item text-center text-light p-2">
           <i class="fas fa-spinner fa-spin"></i> Loading...
         </li>
@@ -119,9 +117,9 @@ const keyword = ref('')
 const isLoadingMore = ref(false)
 
 onMounted(() => {
-  recentChatsStore.subscribeToChatEvents();
-  presenceStore.subscribe();
-  generateChats();
+  recentChatsStore.subscribeToChatEvents()
+  presenceStore.subscribe()
+  generateChats()
 
   // jQuery infinite scroll on sidebar
   $('.sidebar').on('scroll', async function () {

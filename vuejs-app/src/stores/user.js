@@ -9,6 +9,7 @@ export const useUserStore = defineStore('user', {
     profile_thumbnail: null,
     password_null: true,
     level: null,
+    
   }),
   getters: {
     isAuthenticated: (state) => !!state.id,
