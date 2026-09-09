@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{chatId}/pin', [ChatController::class, 'togglePinChat']);
         Route::post('/{chatId}/mute', [ChatController::class, 'toggleMuteChat']);
         Route::post('/{chatId}/archive', [ChatController::class, 'toggleArchiveChat']);
+        Route::post('/{chatId}/messages/{messageId}/react', [ChatController::class, 'toggleMessageReaction']);
         Route::post('/{chatId}/messages/create-voice', [ChatController::class, 'createVoiceChatMessage']);
         Route::post('/{chatId}/messages/create-image', [ChatController::class, 'createImageChatMessage']);
         Route::get('/{chatId}/files/{filename}', [ChatController::class, 'getChatFile'])->name('chat.file');

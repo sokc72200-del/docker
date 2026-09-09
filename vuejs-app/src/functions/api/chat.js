@@ -114,3 +114,9 @@ export async function apiToggleMuteChat(chatId) {
 export async function apiToggleArchiveChat(chatId) {
   return await axios.post(APP_API_URL + `/chats/${chatId}/archive`)
 }
+
+export async function apiToggleMessageReaction(chatId, messageId, emoji) {
+  return await axios.post(APP_API_URL + `/chats/${chatId}/messages/${messageId}/react`,{
+    emoji,
+  });
+}

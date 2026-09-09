@@ -22,11 +22,13 @@ use App\Http\Requests\Chat\ReadChatRequest;
 use App\Http\Requests\Chat\RemoveGroupChatMemberRequest;
 use App\Http\Requests\Chat\UpdateGroupChatRequest;
 use App\Http\Requests\Chat\UserTypingRequest;
+use App\Http\Requests\Chat\ToggleMessageReactionRequest;
 use App\Http\Resources\Chat\ChatMemberResource;
 use App\Http\Resources\Chat\ChatResource;
 use App\Http\Resources\Chat\ChatUserResource;
 use App\Models\Chat;
 use App\Models\ChatMember;
+use App\Models\MessageReaction;
 use App\Models\User;
 use App\Services\ImageClassService;
 use DB;
@@ -39,6 +41,8 @@ use App\Http\Requests\Chat\GetChatMessagesRequest;
 use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
+use App\Http\Requests\Chat\SearchChatMessageRequest;
+use App\Http\Requests\Chat\getChatMessageRequest;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -135,7 +139,7 @@ class ChatController extends Controller
                 'messages' => function ($query) {
                     $query->limit(25)
                         ->orderBy('created_at', 'desc')
-                        ->with('creator');
+                        ->with(['creator', 'reactions.user']);
                 },
                 'members.user',
             ])
@@ -170,7 +174,7 @@ class ChatController extends Controller
         if ($existingChat) {
             return response([
                 'message' => 'Personal chat already exists',
-                'chat' => new ChatResource($existingChat->load([
+                'chat' => new ChatMemberResource($existingChat->load([
                     'messages' => function ($query) {
                         $query->limit(25)
                             ->orderBy('created_at', 'desc')
@@ -303,7 +307,7 @@ class ChatController extends Controller
                 'messages' => function ($query) {
                     $query->limit(25)
                         ->orderBy('created_at', 'desc')
-                        ->with('creator');
+                        ->with(['creator', 'reactions.user']);
                 },
                 'members.user',
             ])
@@ -631,7 +635,7 @@ class ChatController extends Controller
             ->firstOrFail();
 
         $messages = ChatMessage::where('chat_id', $chatId)
-            ->with('creator')
+            ->with(['creator', 'reactions.user'])
             ->orderBy('created_at', 'asc')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -643,6 +647,30 @@ class ChatController extends Controller
                 'per_page' => $messages->perPage(),
                 'total' => $messages->total(),
             ],
+        ], 200);
+    }
+
+    public function searchChatMesssge(SearchChatMessageRequest $request, $chatId)
+    {
+        $user = $request->user();
+        $keyword = $request->input('keyword');
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $messages = ChatMessage::where('chat_id', $chatId)
+            ->where('content', 'LIKE', '%' . $keyword . '%')
+            ->with(['creator', 'reactions.user'])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        return response([
+            'chat_messages' => ChatMessageResource::collection($messages),
         ], 200);
     }
 
@@ -816,6 +844,50 @@ class ChatController extends Controller
         return response([
             'message' => $member->archived_at ? 'Chat archived.' : 'Chat unarchived.',
             'is_archived' => (bool) $member->archived_at,
+        ], 200);
+    }
+
+    public function toggleMessageReaction(ToggleMessageReactionRequest $request, $chatId, $messageId)
+    {
+        $user = $request->user();
+        $emoji = $request->input('emoji');
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $message = ChatMessage::where('id', $messageId)
+            ->where('chat_id', $chatId)
+            ->firstOrFail();
+
+        $existing = MessageReaction::where('chat_message_id', $messageId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existing && $existing->emoji === $emoji) {
+            // Tapping the same emoji again removes the reaction
+            $existing->delete();
+        } elseif ($existing) {
+            // Switching to a different emoji
+            $existing->update(['emoji' => $emoji]);
+        } else {
+            MessageReaction::create([
+                'chat_message_id' => $messageId,
+                'user_id' => $user->id,
+                'emoji' => $emoji,
+            ]);
+        }
+
+        $message->load(['creator', 'reactions.user']);
+
+        broadcast(new MessageUpdated($message, (int) $chatId))->toOthers();
+
+        return response([
+            'message' => 'Reaction updated.',
+            'chat_message' => new ChatMessageResource($message),
         ], 200);
     }
 

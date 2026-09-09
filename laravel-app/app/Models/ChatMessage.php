@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-#[Fillable(['chat_id', 'creator_id', 'type', 'content', 'file_name', 'file_path', 'mime_type', 'seen_at'])]
+use Illuminate\Database\Eloquent\Relations\HasMany;
+#[Fillable(['chat_id', 'creator_id', 'type', 'content', 'file_name', 'file_path', 'mime_type', 'seen_at',])]
 class ChatMessage extends Model
 {
     use SoftDeletes;
@@ -39,5 +39,10 @@ class ChatMessage extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(MessageReaction::class, 'chat_message_id');
     }
 }

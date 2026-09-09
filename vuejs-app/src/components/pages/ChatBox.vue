@@ -85,6 +85,38 @@
                     </template>
                   </div>
                 </div>
+
+                <div
+                  v-if="message.reactions && message.reactions.length"
+                  class="reaction-chips clearfix"
+                  :class="isOwnMessage(message) ? 'text-right' : 'text-left'"
+                >
+                  <span
+                    v-for="r in message.reactions"
+                    :key="r.emoji"
+                    class="reaction-chip"
+                    :class="{ mine: r.reacted_by_me }"
+                    :title="r.user_names.join(', ')"
+                    @click="onReactionClick(message.id, r.emoji)"
+                  >
+                    {{ r.emoji }} {{ r.count }}
+                  </span>
+                </div>
+
+                <div
+                  v-if="reactingMessageId === message.id"
+                  class="emoji-palette clearfix"
+                  :class="isOwnMessage(message) ? 'float-right' : 'float-left'"
+                >
+                  <span
+                    v-for="emoji in quickEmojis"
+                    :key="emoji"
+                    class="emoji-option"
+                    @click="onReactionClick(message.id, emoji)"
+                    >{{ emoji }}</span
+                  >
+                </div>
+
                 <div class="direct-chat-infos clearfix">
                   <span
                     class="direct-chat-name"
@@ -104,6 +136,12 @@
                     class="fas fa-edit text-primary float-right mt-1 mx-1"
                     style="cursor: pointer"
                     title="Edit message"
+                  ></i>
+                  <i
+                    @click="toggleReactionPicker(message.id)"
+                    class="far fa-smile text-warning float-right mt-1 mx-1"
+                    style="cursor: pointer"
+                    title="React"
                   ></i>
                 </div>
                 <hr />
@@ -218,6 +256,7 @@ import {
   apiDeleteChatMessage,
   apiMarkAllChatMessagesAsSeen,
   apiSendTyping,
+  apiToggleMessageReaction,
 } from '@/functions/api/chat'
 import $ from 'jquery'
 import { apiReadChat } from '@/functions/api/chat'
@@ -256,6 +295,28 @@ function handleTyping() {
 function resetTypingThrottle() {
   clearTimeout(typingThrottleTimer)
   typingThrottleTimer = null
+}
+
+// Message reactions
+const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+const reactingMessageId = ref(null)
+
+function toggleReactionPicker(messageId) {
+  reactingMessageId.value = reactingMessageId.value === messageId ? null : messageId
+}
+
+async function onReactionClick(messageId, emoji) {
+  reactingMessageId.value = null
+  try {
+    const response = await apiToggleMessageReaction(props.chatId, messageId, emoji)
+    recentChatsStore.syncChatMessage(props.chatId, response.data.chat_message)
+  } catch (error) {
+    return MessageModal({
+      icon: 'error',
+      title: 'Error',
+      text: error.response?.data?.message || error.message,
+    })
+  }
 }
 
 // Edit state
@@ -587,6 +648,7 @@ watch(
     resetRecordingState() // Reset recording state when switching chats
     selectedImageFile.value = null // Reset selected image when switching chats
     resetTypingThrottle() // Reset typing throttle when switching chats
+    reactingMessageId.value = null // Close any open emoji picker when switching chats
 
     await loadChat()
     // await loadMessages(1);
@@ -606,3 +668,47 @@ onMounted(async () => {
   await markMessagesAsSeen()
 })
 </script>
+
+<style scoped>
+.reaction-chips {
+  margin: 2px 8px 4px;
+}
+
+.reaction-chip {
+  display: inline-block;
+  background-color: #f1f1f1;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  padding: 1px 8px;
+  margin: 0 3px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.reaction-chip.mine {
+  background-color: #cfe8ff;
+  border-color: #3c8dbc;
+}
+
+.emoji-palette {
+  margin: 2px 8px 4px;
+  background: #fff;
+  border: 1px solid #dcdcdc;
+  border-radius: 20px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.emoji-option {
+  display: inline-block;
+  font-size: 18px;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.emoji-option:hover {
+  transform: scale(1.3);
+}
+</style>
