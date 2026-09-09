@@ -28,7 +28,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: "8.3"
 
       - name: Install Composer dependencies
         working-directory: ./laravel-app
@@ -43,12 +43,6 @@ jobs:
       - name: Generate app key
         working-directory: ./laravel-app
         run: php artisan key:generate
-
-      - name: Wait for MySQL
-        run: |
-          until mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; do
-            sleep 2
-          done
 
       - name: Run migrations
         working-directory: ./laravel-app
