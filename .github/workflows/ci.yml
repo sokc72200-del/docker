@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -8,7 +8,9 @@ on:
 
 jobs:
   laravel-tests:
+    name: Laravel Tests
     runs-on: ubuntu-latest
+
     services:
       mysql:
         image: mysql:8.0
@@ -19,56 +21,72 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: sockets
+          extensions: sockets, pdo_mysql, mbstring, gd, zip, pcntl, bcmath
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: laravel-app/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('laravel-app/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         working-directory: ./laravel-app
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Copy .env and configure for CI
+      - name: Prepare environment
         working-directory: ./laravel-app
         run: |
           cp .env.example .env
           sed -i 's/DB_HOST=mysql-service/DB_HOST=127.0.0.1/' .env
-
-      - name: Generate app key
-        working-directory: ./laravel-app
-        run: php artisan key:generate
+          php artisan key:generate
 
       - name: Run migrations
         working-directory: ./laravel-app
         run: php artisan migrate --force
 
-      - name: Run Laravel tests
+      - name: Run tests
         working-directory: ./laravel-app
         run: php artisan test
 
   vuejs-build:
+    name: Vue Build
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: vuejs-app/package-lock.json
 
       - name: Install dependencies
         working-directory: ./vuejs-app
-        run: npm install
+        run: npm ci
+
+      - name: Type check
+        working-directory: ./vuejs-app
+        run: npm run type-check
 
       - name: Build frontend
         working-directory: ./vuejs-app
