@@ -256,3 +256,28 @@ body.dark-mode .search-results {
     width: 16px;
     margin-right: 6px;
 }
+@media (max-width: 767.98px) {
+    .content-wrapper {
+        margin-left: 0 !important;
+    }
+
+    .direct-chat-messages {
+        min-height: calc(100vh - 220px) !important;
+    }
+
+    .main-sidebar {
+        position: fixed;
+        z-index: 1050;
+    }
+}
+.direct-chat-text {
+  max-width: 80%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 575.98px) {
+  .direct-chat-text {
+    max-width: 85%;
+  }
+}

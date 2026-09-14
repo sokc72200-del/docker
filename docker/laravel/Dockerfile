@@ -2,6 +2,7 @@ FROM php:8.4-cli
 
 WORKDIR /var/www/html
 
+# Install system dependencies + PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -18,20 +19,24 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql mbstring bcmath gd zip pcntl sockets \
     && rm -rf /var/lib/apt/lists/*
 
-COPY docker/laravel/*.sh /usr/local/bin/
-
-COPY docker/laravel/supervisord.*.conf /etc/supervisor/conf.d/supervisord.conf
-
+# Install Composer
 COPY --from=composer:2.9 /usr/bin/composer /usr/bin/composer
 
-COPY --from=node:latest /usr/local /usr/local
+# Install RoadRunner binary (required for Octane)
+COPY --from=ghcr.io/roadrunner-server/roadrunner:2024.3 /usr/bin/rr /usr/local/bin/rr
 
-COPY laravel-app /var/www/html
+# Copy entrypoint and supervisor config
+COPY docker/laravel/*.sh /usr/local/bin/
+COPY docker/laravel/supervisord.*.conf /etc/supervisor/conf.d/supervisord.conf
 
-RUN chown -R www-data:www-data /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage \
-    && chmod +x /usr/local/bin/*.sh
+# Make scripts executable
+RUN chmod +x /usr/local/bin/*.sh
 
-RUN composer install
+# Create necessary directories
+RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html
 
-EXPOSE 8000
+EXPOSE 8000 8080
+
+# The entrypoint will handle the rest
+CMD ["bash", "/usr/local/bin/entrypoint.development.sh"]

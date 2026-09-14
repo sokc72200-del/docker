@@ -1,8 +1,10 @@
 #!/bin/sh
 set -e
 
-rm -f package-lock.json
-wait $!
+echo "Starting Vue container..."
+
+# Install dependencies (keep package-lock.json)
 npm install
-wait $!
-npm run dev -- --host=0.0.0.0 --port=5173
+
+# Start Vite dev server
+exec npm run dev -- --host=0.0.0.0 --port=5173
