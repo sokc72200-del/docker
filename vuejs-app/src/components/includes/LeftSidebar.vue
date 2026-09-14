@@ -10,6 +10,13 @@
       <span class="brand-text font-weight-light">Chat System</span>
     </router-link>
 
+    <div class="theme-toggle-row">
+      <button type="button" class="theme-toggle-btn" @click="themeStore.toggle()">
+        <i :class="themeStore.isDark ? 'fas fa-sun' : 'fas fa-moon'"></i>
+        {{ themeStore.isDark ? 'Light mode' : 'Dark mode' }}
+      </button>
+    </div>
+
     <div class="sidebar">
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
@@ -71,7 +78,9 @@
       </div>
       <nav class="mt-2">
         <ChatList :chats="chats"></ChatList>
+
         <UserList :users="users"></UserList>
+
         <li v-if="isLoadingMore" class="nav-item text-center text-light p-2">
           <i class="fas fa-spinner fa-spin"></i> Loading...
         </li>
@@ -85,6 +94,7 @@ import logoImage from '@/assets/images/logoImage.jpg'
 import { useUserStore } from '@/stores/user'
 import { useRecentChatsStore } from '@/stores/recentChats'
 import { usePresenceStore } from '@/stores/presence'
+import { useThemeStore } from '@/stores/theme'
 import { ref, onMounted, watch, computed } from 'vue'
 import { apiGetChats, apiGetChatUsers } from '@/functions/api/chat'
 import ChatList from '@/components/includes/controls/ChatList.vue'
@@ -100,6 +110,7 @@ watch(route, (newRoute) => {
 const userStore = useUserStore()
 const recentChatsStore = useRecentChatsStore()
 const presenceStore = usePresenceStore()
+const themeStore = useThemeStore()
 
 const chats = computed(() => recentChatsStore.chats)
 const users = ref([])

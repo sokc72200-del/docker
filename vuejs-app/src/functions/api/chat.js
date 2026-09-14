@@ -120,3 +120,8 @@ export async function apiToggleMessageReaction(chatId, messageId, emoji) {
     emoji,
   });
 }
+export async function apiSearchChatMessages(chatId, keyword) {
+  return await axios.get(APP_API_URL + `/chats/${chatId}/messages/search`, {
+    params: { keyword },
+  });
+}

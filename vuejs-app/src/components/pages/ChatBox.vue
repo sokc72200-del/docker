@@ -9,6 +9,9 @@
             </h3>
             <h3 class="card-title mx-3"></h3>
             <div class="card-tools ml-auto">
+              <button type="button" class="btn btn-tool" @click="toggleSearchPanel">
+                <i class="fas fa-search text-primary"></i>
+              </button>
               <RouterLink
                 :to="{ name: 'chat.details', params: { chatId: props.chatId } }"
                 type="button"
@@ -18,10 +21,39 @@
               </RouterLink>
             </div>
           </div>
+          <div v-if="showSearchPanel" class="card-body border-bottom py-2">
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Search messages in this chat..."
+              @keyup="handleSearchKeyup"
+            />
+            <div v-if="isSearching" class="text-muted small mt-2">
+              <i class="fas fa-spinner fa-spin"></i> Searching...
+            </div>
+            <div v-else-if="searchKeyword.trim() && searchResults.length === 0" class="text-muted small mt-2">
+              No messages found.
+            </div>
+            <div v-else-if="searchResults.length" class="search-results mt-2">
+              <div
+                v-for="result in searchResults"
+                :key="result.id"
+                class="search-result-item"
+                @click="onSearchResultClick(result)"
+              >
+                <div class="d-flex justify-content-between">
+                  <strong>{{ result.creator.name }}</strong>
+                  <span class="text-muted small">{{ formatChatTime(result.created_at) }}</span>
+                </div>
+                <div class="text-truncate">{{ result.content }}</div>
+              </div>
+            </div>
+          </div>
           <div class="card-body">
             <div class="direct-chat-messages" style="min-height: calc(100vh - 280px)">
               <template v-for="message in chat?.messages" :key="message.id">
-                <div class="direct-chat-msg" :class="isOwnMessage(message) ? 'right' : 'left'">
+                <div class="direct-chat-msg" :id="'message-' + message.id" :class="isOwnMessage(message) ? 'right' : 'left'">
                   <div class="direct-chat-infos clearfix">
                     <span
                       class="direct-chat-timestamp mx-1"
@@ -113,8 +145,7 @@
                     :key="emoji"
                     class="emoji-option"
                     @click="onReactionClick(message.id, emoji)"
-                    >{{ emoji }}</span
-                  >
+                  >{{ emoji }}</span>
                 </div>
 
                 <div class="direct-chat-infos clearfix">
@@ -257,6 +288,7 @@ import {
   apiMarkAllChatMessagesAsSeen,
   apiSendTyping,
   apiToggleMessageReaction,
+  apiSearchChatMessages,
 } from '@/functions/api/chat'
 import $ from 'jquery'
 import { apiReadChat } from '@/functions/api/chat'
@@ -295,6 +327,58 @@ function handleTyping() {
 function resetTypingThrottle() {
   clearTimeout(typingThrottleTimer)
   typingThrottleTimer = null
+}
+
+// Message search
+const showSearchPanel = ref(false)
+const searchKeyword = ref('')
+const searchResults = ref([])
+const isSearching = ref(false)
+let searchDebounceTimer = null
+
+function toggleSearchPanel() {
+  showSearchPanel.value = !showSearchPanel.value
+  if (!showSearchPanel.value) {
+    searchKeyword.value = ''
+    searchResults.value = []
+  }
+}
+
+function handleSearchKeyup() {
+  clearTimeout(searchDebounceTimer)
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
+    searchResults.value = []
+    isSearching.value = false
+    return
+  }
+  isSearching.value = true
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      const response = await apiSearchChatMessages(props.chatId, keyword)
+      searchResults.value = response.data.chat_messages
+    } catch (error) {
+      console.error('Error searching messages:', error)
+    } finally {
+      isSearching.value = false
+    }
+  }, 400)
+}
+
+function onSearchResultClick(result) {
+  showSearchPanel.value = false
+  const el = document.getElementById('message-' + result.id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('highlight-message')
+    setTimeout(() => el.classList.remove('highlight-message'), 2000)
+  } else {
+    MessageModal({
+      icon: 'info',
+      title: 'Message found',
+      text: 'This message is further back in the chat history. Scroll up to load it.',
+    })
+  }
 }
 
 // Message reactions
@@ -649,6 +733,9 @@ watch(
     selectedImageFile.value = null // Reset selected image when switching chats
     resetTypingThrottle() // Reset typing throttle when switching chats
     reactingMessageId.value = null // Close any open emoji picker when switching chats
+    showSearchPanel.value = false // Close search panel when switching chats
+    searchKeyword.value = ''
+    searchResults.value = []
 
     await loadChat()
     // await loadMessages(1);
@@ -710,5 +797,33 @@ onMounted(async () => {
 
 .emoji-option:hover {
   transform: scale(1.3);
+}
+
+.search-results {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background-color: #f5f5f5;
+}
+
+:deep(.highlight-message) {
+  animation: highlight-fade 2s ease;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: #fff3cd;
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 </style>

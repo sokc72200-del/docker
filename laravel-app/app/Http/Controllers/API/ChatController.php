@@ -38,11 +38,10 @@ use App\Http\Requests\Chat\CreateImageChatMessageRequest;
 use App\Http\Requests\Chat\CreateVoiceChatMessageRequest;
 use App\Http\Requests\Chat\DeleteChatMessageRequest;
 use App\Http\Requests\Chat\GetChatMessagesRequest;
+use App\Http\Requests\Chat\SearchChatMessagesRequest;
 use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
-use App\Http\Requests\Chat\SearchChatMessageRequest;
-use App\Http\Requests\Chat\getChatMessageRequest;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -174,7 +173,7 @@ class ChatController extends Controller
         if ($existingChat) {
             return response([
                 'message' => 'Personal chat already exists',
-                'chat' => new ChatMemberResource($existingChat->load([
+                'chat' => new ChatResource($existingChat->load([
                     'messages' => function ($query) {
                         $query->limit(25)
                             ->orderBy('created_at', 'desc')
@@ -650,7 +649,7 @@ class ChatController extends Controller
         ], 200);
     }
 
-    public function searchChatMesssge(SearchChatMessageRequest $request, $chatId)
+    public function searchChatMessages(SearchChatMessagesRequest $request, $chatId)
     {
         $user = $request->user();
         $keyword = $request->input('keyword');

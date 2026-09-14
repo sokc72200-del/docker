@@ -87,7 +87,7 @@
               <i class="fab fa-google mr-2"></i> Sign up with Google
             </button>
             <button @click="oAuthSignUp('github')" class="btn btn-block btn-dark">
-              <i class="fab fa-githup mr-2"></i> Sign up with Google
+              <i class="fab fa-githup mr-2"></i> Sign up with Github
             </button>
           </div>
           <p class="mb-1">

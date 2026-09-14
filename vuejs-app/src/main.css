@@ -1,60 +1,258 @@
-@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @import 'icheck-bootstrap/icheck-bootstrap.min.css';
 @import 'admin-lte/dist/css/adminlte.min.css';
 
-.nav-item p.chat-name {
-    position: absolute;
-    left: 55px;
-    top: 13px;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 125px;
-    /* or any specific width/max-width */
-    display: inline-block;
-    /* or inline-block */
+/* ============================================
+   Design tokens
+   ============================================ */
+:root {
+    --color-sidebar-bg: #1b2140;
+    --color-sidebar-text: #c3c7e4;
+    --color-sidebar-text-active: #ffffff;
+
+    --color-accent: #5b6ef5;
+    --color-accent-hover: #4c5ee8;
+    --color-accent-soft: #eef0fe;
+
+    --color-bg: #f4f6fb;
+    --color-card-bg: #ffffff;
+    --color-border: #e5e7f0;
+
+    --color-text-primary: #1b2140;
+    --color-text-secondary: #6b7280;
+
+    --color-pastel-purple: #7c6ff0;
+    --color-pastel-teal: #14b8a6;
+    --color-pastel-pink: #ec4899;
+    --color-pastel-blue: #3b82f6;
+
+    --shadow-card: 0 4px 16px rgba(27, 33, 64, 0.08);
+    --shadow-card-hover: 0 6px 20px rgba(27, 33, 64, 0.12);
+
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --radius-pill: 999px;
 }
 
-.nav-item p.chat-datetime {
-    font-size: 0.75rem;
-    position: absolute;
-    right: 5px;
-    top: 2px;
+/* ============================================
+   Global type + background
+   ============================================ */
+body,
+.wrapper {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
 }
 
-.nav-item p.chat-message {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 185px;
-    /* or any specific width/max-width */
-    display: inline-block;
-    /* or inline-block */
+a {
+    color: var(--color-accent);
 }
 
-.nav-item p.chat-activity-icon {
-    font-size: 1rem;
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    animation: blinker 1.5s linear infinite;
+a:hover {
+    color: var(--color-accent-hover);
 }
 
-@keyframes blinker {
-    0% {
-        opacity: 1;
-        /* Fully visible */
-    }
+.text-primary {
+    color: var(--color-accent) !important;
+}
 
-    50% {
-        opacity: 0;
-        /* Hidden */
-    }
+/* ============================================
+   Sidebar
+   ============================================ */
+.main-sidebar,
+.sidebar-dark-primary,
+.sidebar-dark-primary .sidebar {
+    background-color: var(--color-sidebar-bg) !important;
+}
 
-    100% {
-        opacity: 1;
-        /* Fully visible, optional if infinite is used */
-    }
+.brand-link {
+    background-color: var(--color-sidebar-bg) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link,
+.sidebar-dark-primary .user-panel a {
+    color: var(--color-sidebar-text) !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-radius: var(--radius-sm);
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active,
+.sidebar-dark-primary .nav-sidebar > .nav-item > .router-link-active {
+    background-color: var(--color-accent) !important;
+    color: var(--color-sidebar-text-active) !important;
+    border-radius: var(--radius-sm);
+}
+
+.nav-header {
+    color: rgba(195, 199, 228, 0.5) !important;
+}
+
+.form-control-sidebar {
+    border-radius: var(--radius-md) 0 0 var(--radius-md) !important;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+.card {
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-card);
+    border: none;
+}
+
+.card.card-primary.card-outline {
+    border-top: 3px solid var(--color-accent) !important;
+}
+
+.card-header {
+    border-top-left-radius: var(--radius-lg) !important;
+    border-top-right-radius: var(--radius-lg) !important;
+    background-color: var(--color-card-bg);
+}
+
+.card-footer {
+    border-bottom-left-radius: var(--radius-lg) !important;
+    border-bottom-right-radius: var(--radius-lg) !important;
+    background-color: var(--color-card-bg);
+}
+
+/* ============================================
+   Buttons + inputs
+   ============================================ */
+.btn {
+    border-radius: var(--radius-pill);
+}
+
+.btn-primary {
+    background-color: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--color-accent-hover) !important;
+    border-color: var(--color-accent-hover) !important;
+}
+
+.btn-tool {
+    border-radius: var(--radius-sm);
+}
+
+.form-control {
+    border-radius: var(--radius-md);
+    border-color: var(--color-border);
+}
+
+.form-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 0.15rem var(--color-accent-soft);
+}
+
+.input-group-append .btn {
+    border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+}
+
+/* ============================================
+   Chat bubbles
+   ============================================ */
+.direct-chat-text {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card-bg);
+    box-shadow: var(--shadow-card);
+}
+
+.direct-chat-msg.right .direct-chat-text {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+}
+
+.direct-chat-img {
+    border-radius: 50%;
+}
+
+/* ============================================
+   Dark mode
+   ============================================ */
+body.dark-mode {
+    --color-bg: #171b34;
+    --color-card-bg: #1f2444;
+    --color-border: #2e3357;
+    --color-text-primary: #e7e9f5;
+    --color-text-secondary: #9ca3c9;
+    --color-accent-soft: rgba(91, 110, 245, 0.18);
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode .card-header,
+body.dark-mode .card-footer {
+    background-color: var(--color-card-bg);
+}
+
+body.dark-mode .direct-chat-text {
+    color: var(--color-text-primary);
+}
+
+body.dark-mode .direct-chat-msg.right .direct-chat-text {
+    color: #ffffff;
+}
+
+body.dark-mode .search-result-item {
+    border-bottom-color: var(--color-border);
+}
+
+body.dark-mode .search-result-item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .emoji-palette {
+    background-color: var(--color-card-bg);
+    border-color: var(--color-border);
+}
+
+body.dark-mode .reaction-chip {
+    background-color: var(--color-card-bg);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+body.dark-mode .search-results {
+    color: var(--color-text-primary);
+}
+
+/* ============================================
+   Theme toggle button (in sidebar)
+   ============================================ */
+.theme-toggle-row {
+    padding: 6px 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.theme-toggle-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-sidebar-text);
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.theme-toggle-btn i {
+    width: 16px;
+    margin-right: 6px;
 }
