@@ -32,7 +32,10 @@
             <div v-if="isSearching" class="text-muted small mt-2">
               <i class="fas fa-spinner fa-spin"></i> Searching...
             </div>
-            <div v-else-if="searchKeyword.trim() && searchResults.length === 0" class="text-muted small mt-2">
+            <div
+              v-else-if="searchKeyword.trim() && searchResults.length === 0"
+              class="text-muted small mt-2"
+            >
               No messages found.
             </div>
             <div v-else-if="searchResults.length" class="search-results mt-2">
@@ -53,7 +56,11 @@
           <div class="card-body">
             <div class="direct-chat-messages" style="min-height: calc(100vh - 280px)">
               <template v-for="message in chat?.messages" :key="message.id">
-                <div class="direct-chat-msg" :id="'message-' + message.id" :class="isOwnMessage(message) ? 'right' : 'left'">
+                <div
+                  class="direct-chat-msg"
+                  :id="'message-' + message.id"
+                  :class="isOwnMessage(message) ? 'right' : 'left'"
+                >
                   <div class="direct-chat-infos clearfix">
                     <span
                       class="direct-chat-timestamp mx-1"
@@ -145,7 +152,8 @@
                     :key="emoji"
                     class="emoji-option"
                     @click="onReactionClick(message.id, emoji)"
-                  >{{ emoji }}</span>
+                    >{{ emoji }}</span
+                  >
                 </div>
 
                 <div class="direct-chat-infos clearfix">
@@ -715,6 +723,24 @@ function setupScrollListener() {
     this.scrollTop = newScrollHeight - previousScrollHeight + scrollTop
   })
 }
+watch(
+  () => chat.value?.messages?.length,
+  (newLen, oldLen) => {
+    if (newLen > (oldLen || 0)) {
+      const container = document.querySelector('.direct-chat-messages')
+      if (!container) return
+
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 150
+
+      if (isNearBottom) {
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight
+        }, 30)
+      }
+    }
+  },
+)
 
 // Watch for chat changes
 watch(

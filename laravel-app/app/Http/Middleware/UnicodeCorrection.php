@@ -76,11 +76,12 @@ class UnicodeCorrection
     private function replaceUnicode($text)
     {
         $text = trim($text);
-        $text = preg_replace('/[\s]+/u', '\s', $text);
-        $text = preg_replace('/[\t]+/u', '\t', $text);
-        $text = preg_replace('/[\n]+/u', '\n', $text);
-        $text = preg_replace('/[\r]+/u', '\r', $text);
-        $text = preg_replace('/\x{200B}+/u', "\x{200B}", $text);
+
+        // Normalize whitespace (collapse multiple spaces/tabs/newlines into a single space)
+        $text = preg_replace('/\s+/u', ' ', $text);
+
+        // Remove zero-width spaces
+        $text = preg_replace('/\x{200B}+/u', '', $text);
 
         $salabpi = ['ង', 'ញ', 'ប', 'ម', 'យ', 'រ', 'វ'];
         $treysab = ['ស', 'ហ', 'អ'];
