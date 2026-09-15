@@ -1,0 +1,9 @@
+# Local dependencies and generated files are provided by Docker volumes or
+# recreated by the Laravel entrypoint.  Keeping them out also avoids copying
+# the Windows `public/storage` reparse point into the Linux build context.
+node_modules
+vendor
+laravel-app/vendor
+laravel-app/public/storage
+vuejs-app/node_modules
+.git

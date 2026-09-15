@@ -27,6 +27,7 @@
 **/Dockerfile*
 **/node_modules
 **/npm-debug.log
+laravel-app/public/storage
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
