@@ -12,7 +12,7 @@ class GetUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user() && $this->user()->level === 'ADMIN';
     }
 
     /**

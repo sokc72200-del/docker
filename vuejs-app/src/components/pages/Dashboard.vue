@@ -26,7 +26,7 @@
             <h2>Welcome back, {{ userStore.name }} 👋</h2>
             <p>Here’s what’s happening in your chats today.</p>
           </div>
-          <router-link :to="{ name: 'chat.create' }" class="btn btn-primary">
+          <router-link :to="{ name: 'chat.create' }" class="btn-new-chat">
             <i class="fas fa-plus mr-1"></i> New Chat
           </router-link>
         </div>
@@ -159,23 +159,55 @@ const totalUnread = computed(() => {
 })
 
 function chatName(chat) {
-  if (chat.type === 'group') return chat.name || 'Group Chat'
-  const other = chat.members?.find((m) => m.user?.id !== userStore.id)
-  return other?.user?.name || 'Chat'
+  if (!chat) return 'Chat'
+
+  if (chat.type === 'group') {
+    return chat.name || 'Group Chat'
+  }
+
+  const members = chat.members || []
+  const myId = Number(userStore.id)
+
+  // Support both shapes: member.user.id and member.user_id
+  const other = members.find((m) => {
+    const memberUserId = Number(m.user?.id ?? m.user_id)
+    return memberUserId && memberUserId !== myId
+  })
+
+  return (
+    other?.user?.name ||
+    other?.name ||
+    chat.name ||
+    'Chat'
+  )
 }
 
 function chatAvatar(chat) {
-  if (chat.type === 'group') return chat.avatar || emptyImage
-  const other = chat.members?.find((m) => m.user?.id !== userStore.id)
-  return other?.user?.profile_thumbnail || emptyImage
+  if (!chat) return emptyImage
+
+  if (chat.type === 'group') {
+    return chat.avatar || emptyImage
+  }
+
+  const members = chat.members || []
+  const myId = Number(userStore.id)
+
+  const other = members.find((m) => {
+    const memberUserId = Number(m.user?.id ?? m.user_id)
+    return memberUserId && memberUserId !== myId
+  })
+
+  return other?.user?.profile_thumbnail || other?.profile_thumbnail || emptyImage
 }
 
 function lastMessagePreview(chat) {
   const messages = chat.messages || []
   if (!messages.length) return 'Start a new conversation'
+
   const last = messages[messages.length - 1]
   if (last.type === 'image') return '📷 Image'
   if (last.type === 'voice') return '🎤 Voice message'
+
   const text = last.content || ''
   return text.length > 40 ? text.slice(0, 40) + '...' : text
 }
@@ -216,17 +248,24 @@ function openChat(chatId) {
   font-size: 0.95rem;
 }
 
-.welcome-card .btn {
-  background: white;
-  color: #5b6ef5;
-  border: none;
+.btn-new-chat {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff !important;
+  color: #5b6ef5 !important;
+  border: none !important;
   border-radius: 10px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 10px 18px;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.15s;
 }
 
-.welcome-card .btn:hover {
-  background: #f0f2ff;
+.btn-new-chat:hover {
+  background: #f0f2ff !important;
+  color: #4c5ee8 !important;
+  transform: translateY(-1px);
 }
 
 .stat-card {
@@ -350,5 +389,14 @@ function openChat(chatId) {
 
 .badge-primary {
   background: #5b6ef5;
+}
+
+/* Dark mode tweaks */
+body.dark-mode .stat-card {
+  background: var(--color-card-bg, #1f2444);
+}
+
+body.dark-mode .recent-item:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 </style>
